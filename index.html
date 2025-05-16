@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Droids & Deathstars</title>
+  <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.22.9/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState } = React;
+
+    const Card = ({ item, onClick }) => (
+      <div
+        className="bg-gray-800 w-full flex flex-col items-center justify-center rounded-lg shadow-lg p-6 m-4 w-80 transform transition duration-300 hover:scale-105 cursor-pointer"
+        onClick={onClick}
+      >
+        <img src={item.image} alt={item.name} className="h-full object-cover rounded-md mb-4 p-2" />
+        <h3 className="text-xl font-bold text-white">{item.name}</h3>
+      </div>
+    );
+
+    const SubclassList = ({ subclasses, onSelect }) => (
+      <div className="h-64 overflow-y-auto">
+        {subclasses.map((subclass, index) => (
+          <div
+            key={index}
+            className="bg-gray-800 rounded-lg p-4 mb-4 cursor-pointer hover:bg-gray-700"
+            onClick={() => onSelect(subclass)}
+          >
+            <h4 className="text-lg font-bold text-white">{subclass.name}</h4>
+            <p className="text-gray-300">{subclass.description}</p>
+          </div>
+        ))}
+      </div>
+    );
+
+    const SubclassDetail = ({ subclass, onBack }) => (
+      <div className="h-64 overflow-y-auto">
+        <button
+          className="mb-4 px-4 py-2 bg-gray-700 rounded hover:bg-gray-600 text-white flex items-center"
+          onClick={onBack}
+        >
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7"></path>
+          </svg>
+          Back
+        </button>
+        <h4 className="text-2xl font-bold text-white mb-4">{subclass.name}</h4>
+        <p className="text-gray-300 mb-4">{subclass.description}</p>
+        <h5 className="text-lg font-semibold text-white">Features</h5>
+        <p className="whitespace-pre-line text-gray-300">{subclass.features}</p>
+      </div>
+    );
+
+    const Modal = ({ item, category, onClose }) => {
+      const [activeTab, setActiveTab] = useState("description");
+      const [selectedSubclass, setSelectedSubclass] = useState(null);
+
+      const tabs = category === "races" ? [
+        "description",
+        "traits",
+        "abilityScoreIncrease",
+        "age",
+        "size",
+        "speed",
+        "languages",
+        ...(item.otherTraits ? Object.keys(item.otherTraits) : []),
+      ] : [
+        "description",
+        "traits",
+        "hitDice",
+        "primaryAbility",
+        "proficiencies"
+      ].filter(tab => item[tab] !== undefined && item[tab] !== null && item[tab] !== "");
+
+      const classSubclasses = category === "classes" ? subclasses.filter(sub => sub.className === item.name) : [];
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 rounded-lg shadow-xl max-w-6xl w-full m-4 flex p-10">
+            <div className="w-1/3">
+              <img src={item.image} alt={item.name} className="h-full object-cover rounded-l-lg p-10" />
+            </div>
+            <div className="w-2/3 p-6 text-white">
+              <h2 className="text-3xl font-bold mb-4">{item.name}</h2>
+              {category === "classes" && (
+                <button
+                  className={`w-full px-4 py-2 mt-2 mb-4 rounded ${activeTab === "subclasses" ? "bg-purple-600" : "bg-purple-600"} hover:bg-purple-700 text-white`}
+                  onClick={() => { setActiveTab("subclasses"); setSelectedSubclass(null); }}
+                >
+                  Subclasses
+                </button>
+              )}
+              <div className="flex flex-wrap mb-4">
+                {tabs.map(tab => (
+                  <button
+                    key={tab}
+                    className={`px-4 py-2 mr-2 mb-2 rounded ${activeTab === tab ? "bg-blue-600" : "bg-gray-700"}`}
+                    onClick={() => { setActiveTab(tab); setSelectedSubclass(null); }}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1).replace(/([A-Z])/g, ' $1').trim()}
+                  </button>
+                ))}
+              </div>
+              {activeTab === "subclasses" && !selectedSubclass ? (
+                <div className="h-64 overflow-y-auto">
+                  {classSubclasses.length > 0 ? (
+                    <SubclassList subclasses={classSubclasses} onSelect={setSelectedSubclass} />
+                  ) : (
+                    <p className="text-gray-300">No subclasses available for this class.</p>
+                  )}
+                </div>
+              ) : selectedSubclass ? (
+                <SubclassDetail subclass={selectedSubclass} onBack={() => setSelectedSubclass(null)} />
+              ) : activeTab === "description" || activeTab === "traits" ? (
+                <div className="h-64 overflow-y-auto">
+                  <p className="whitespace-pre-line">{item[activeTab]}</p>
+                </div>
+              ) : activeTab === "proficiencies" ? (
+                <div className="h-64 overflow-y-auto">
+                  <p><strong>Saving Throws:</strong> {item.proficiencies.savingThrows.join(", ")}</p>
+                  <p><strong>Armor:</strong> {item.proficiencies.armor.join(", ")}</p>
+                  <p><strong>Weapons:</strong> {item.proficiencies.weapons.join(", ")}</p>
+                  <p><strong>Skills:</strong> {item.proficiencies.skills}</p>
+                </div>
+              ) : item.otherTraits && item.otherTraits[activeTab] ? (
+                <div className="h-64 overflow-y-auto">
+                  <p className="whitespace-pre-line">{item.otherTraits[activeTab]}</p>
+                </div>
+              ) : (
+                <div className="h-64 overflow-y-auto">
+                  <p>{item[activeTab]}</p>
+                </div>
+              )}
+              <button
+                className="mt-6 px-4 py-2 bg-red-600 rounded hover:bg-red-700"
+                onClick={onClose}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const CharacterCreation = ({ onClose }) => {
+      const [step, setStep] = useState(1);
+      const [character, setCharacter] = useState({
+        name: '',
+        species: null,
+        class: null,
+        subclass: null,
+        traits: [],
+        bio: ''
+      });
+
+      const handleBackdropClick = (e) => {
+        if (e.target === e.currentTarget) {
+          onClose();
+        }
+      };
+
+      const handleSpeciesSelect = (species) => {
+        setCharacter(prev => ({ ...prev, species }));
+        setStep(2);
+      };
+
+      const handleClassSelect = (classData) => {
+        setCharacter(prev => ({ ...prev, class: classData }));
+        setStep(3);
+      };
+
+      const handleSubclassSelect = (subclass) => {
+        setCharacter(prev => ({ ...prev, subclass }));
+        setStep(4);
+      };
+
+      const handleTraitsChange = (e) => {
+        const selectedTraits = Array.from(e.target.selectedOptions, option => option.value);
+        setCharacter(prev => ({ ...prev, traits: selectedTraits }));
+      };
+
+      const handleBioChange = (e) => {
+        setCharacter(prev => ({ ...prev, bio: e.target.value }));
+      };
+
+      const handleNameChange = (e) => {
+        setCharacter(prev => ({ ...prev, name: e.target.value }));
+      };
+
+      const handleSubmit = () => {
+        setStep(5);
+      };
+
+      const renderStep = () => {
+        switch (step) {
+          case 1:
+            return (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Choose Your Species</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                  {species.map((s, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors flex flex-col items-center"
+                      onClick={() => handleSpeciesSelect(s)}
+                    >
+                      <div className="relative h-48 mb-2 flex flex-col align-items">
+                        <img src={s.image} alt={s.name} className="h-full object-cover rounded" />
+                      </div>
+                      <h3 className="text-xl font-bold">{s.name}</h3>
+                      <p className="text-gray-300">{s.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          case 2:
+            return (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Choose Your Class</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                  {classes.map((c, index) => (
+                    <div
+                      key={index}
+                      className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors flex flex-col items-center"
+                      onClick={() => handleClassSelect(c)}
+                    >
+                      <div className="relative h-48 mb-2 flex flex-col align-items">
+                        <img src={c.image} alt={c.name} className="h-full object-cover rounded" />
+                      </div>
+                      <h3 className="text-xl font-bold">{c.name}</h3>
+                      <p className="text-gray-300">{c.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          case 3:
+            return (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Choose Your Subclass</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                  {subclasses
+                    .filter(sub => sub.className === character.class.name)
+                    .map((sub, index) => (
+                      <div
+                        key={index}
+                        className="bg-gray-800 p-4 rounded-lg cursor-pointer hover:bg-gray-700 transition-colors"
+                        onClick={() => handleSubclassSelect(sub)}
+                      >
+                        <h3 className="text-xl font-bold">{sub.name}</h3>
+                        <p className="text-gray-300">{sub.description}</p>
+                        <p className="text-gray-400 mt-2">{sub.features}</p>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            );
+          case 4:
+            return (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Customize Your Character</h2>
+                <div className="space-y-4 max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar pr-4">
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Character Name</label>
+                    <input
+                      type="text"
+                      value={character.name}
+                      onChange={handleNameChange}
+                      className="w-full bg-gray-800 rounded-lg p-2 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors"
+                      placeholder="Enter your character's name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Select Traits</label>
+                    <div className="relative">
+                      <select
+                        multiple
+                        value={character.traits}
+                        onChange={handleTraitsChange}
+                        className="w-full bg-gray-800 rounded-lg p-2 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors appearance-none custom-scrollbar"
+                        style={{ height: '150px' }}
+                      >
+                        {character.species.traits.split('\n').map((trait, index) => (
+                          <option 
+                            key={index} 
+                            value={trait}
+                            className="py-2 px-3 hover:bg-purple-600 cursor-pointer"
+                          >
+                            {trait}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                        <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Character Bio</label>
+                    <textarea
+                      value={character.bio}
+                      onChange={handleBioChange}
+                      className="w-full bg-gray-800 rounded-lg p-2 text-white border border-gray-700 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none transition-colors custom-scrollbar"
+                      style={{ height: '150px' }}
+                      placeholder="Write your character's backstory..."
+                    />
+                  </div>
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                  >
+                    Create Character
+                  </button>
+                </div>
+              </div>
+            );
+          case 5:
+            return (
+              <div className="space-y-4">
+                <h2 className="text-2xl font-bold mb-4">Character Sheet</h2>
+                <div className="bg-gray-800 p-6 rounded-lg max-h-[calc(100vh-200px)] overflow-y-auto custom-scrollbar">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-xl font-bold">{character.name}</h3>
+                      <p className="text-gray-300">{character.species.name} {character.class.name}</p>
+                      <p className="text-gray-300">{character.subclass.name}</p>
+                    </div>
+                    <div className="flex justify-center gap-8">
+                      <img src={character.species.image} alt={character.species.name} className="h-36 object-cover rounded" />
+                      <img src={character.class.image} alt={character.class.name} className="h-36 object-cover rounded" />
+                      </div>
+                  </div>
+                  <div className="mt-4">
+                    <h4 className="text-lg font-bold">Traits</h4>
+                    <ul className="list-disc list-inside text-gray-300">
+                      {character.traits.map((trait, index) => (
+                        <li key={index}>{trait}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="mt-4">
+                    <h4 className="text-lg font-bold">Bio</h4>
+                    <p className="text-gray-300 whitespace-pre-line">{character.bio}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={onClose}
+                  className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            );
+        }
+      };
+
+      return (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={handleBackdropClick}
+        >
+          <div className="bg-gray-900 rounded-lg shadow-xl max-w-4xl w-full m-4 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold">Create Character</h2>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {renderStep()}
+          </div>
+        </div>
+      );
+    };
+
+    const App = () => {
+      const [activeCategory, setActiveCategory] = useState("races");
+      const [selectedItem, setSelectedItem] = useState(null);
+      const [searchQuery, setSearchQuery] = useState("");
+      const [showCharacterCreation, setShowCharacterCreation] = useState(false);
+
+      const filteredItems = (activeCategory === "races" ? species : classes).filter(item =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+
+      return (
+        <div className="min-h-screen bg-gray-900 text-white">
+          <header className="bg-blue-800 p-6 flex items-center justify-between">
+            <div className="flex items-center">
+              <img src="assets/dnd_logo.png" alt="Droids & Deathstars Logo" className="h-24 w-24 mr-4" />
+              <div>
+                <h1 className="text-4xl font-bold">Droids & Deathstars</h1>
+                <p className="mt-2">Explore species and classes in the Star Wars 5e universe</p>
+              </div>
+            </div>
+            <button
+              className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-bold"
+              onClick={() => setShowCharacterCreation(true)}
+            >
+              Create Character
+            </button>
+          </header>
+          <nav className="flex justify-center space-x-4 py-4 bg-gray-800">
+            <button
+              className={`px-6 py-2 rounded ${activeCategory === "races" ? "bg-blue-600" : "bg-gray-700"}`}
+              onClick={() => { setActiveCategory("races"); setSearchQuery(""); }}
+            >
+              Species
+            </button>
+            <button
+              className={`px-6 py-2 rounded ${activeCategory === "classes" ? "bg-blue-600" : "bg-gray-700"}`}
+              onClick={() => { setActiveCategory("classes"); setSearchQuery(""); }}
+            >
+              Classes
+            </button>
+          </nav>
+          <div className="p-6">
+            <input
+              type="text"
+              className="w-full max-w-md mx-auto block bg-gray-800 text-white rounded-lg p-3 mb-6 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-600"
+              placeholder={`Search ${activeCategory === "races" ? "species" : "classes"}...`}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+              {filteredItems.map((item, index) => (
+                <Card key={index} item={item} onClick={() => setSelectedItem({ item, category: activeCategory })} />
+              ))}
+            </div>
+          </div>
+          {selectedItem && (
+            <Modal
+              item={selectedItem.item}
+              category={selectedItem.category}
+              onClose={() => setSelectedItem(null)}
+            />
+          )}
+          {showCharacterCreation && (
+            <CharacterCreation onClose={() => setShowCharacterCreation(false)} />
+          )}
+        </div>
+      );
+    };
+
+    ReactDOM.render(<App />, document.getElementById("root"));
+
+    // Add custom scrollbar styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 8px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: #1f2937;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #4b5563;
+        border-radius: 4px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+      select.custom-scrollbar option {
+        padding: 8px;
+      }
+      select.custom-scrollbar option:checked {
+        background: #7c3aed;
+      }
+    `;
+    document.head.appendChild(style);
+  </script>
+  <script src="species.js"></script>
+  <script src="classes.js"></script>
+  <script src="subclasses.js"></script>
+</body>
+</html>
